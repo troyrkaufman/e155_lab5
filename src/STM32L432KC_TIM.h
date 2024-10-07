@@ -12,8 +12,6 @@
 // Function prototypes
 ///////////////////////////////////////////////////////////////////////////////
 
-void pwm_init(TIM_TypeDef * TIMx);
-void pwm_update(TIM_TypeDef * TIMx, uint32_t freq);
-void delay_init(TIM_TypeDef * TIMx);
-void delay_update(TIM_TypeDef * TIMx, uint32_t duration);
+void count_init(TIM_TypeDef * TIMx);
+int count_update(TIM_TypeDef * TIMx, uint32_t done);
 #endif

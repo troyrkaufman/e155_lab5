@@ -4,11 +4,13 @@
 // 10/5/24
 
 #include "main.h"
+#define ppr 120
 
 int main(void) {
     // Global direction and speed variables
     int direction;
     int speed;
+    int delta_time = 0;
 
     // Enable PA2 and PA3 as inputs
     gpioEnable(GPIO_PORT_A);
@@ -31,7 +33,7 @@ int main(void) {
     // Enable interrupts globally
     __enable_irq();
 
-    // TODO: Configure interrupt for rising edge of GPIO pin for button
+    //Configure interrupt for rising edge of GPIO pin for button
     // 1. Configure mask bit
     EXTI->IMR1 |= (1<<5); // Sets IM0 interrupt
     EXTI->IMR1 |= (1<<6); // Sets IM1 interrupt 
@@ -45,24 +47,57 @@ int main(void) {
     NVIC->ISER[0] |= (1<<23); // Using EXTI9_5 for pins PA5 and PA6 EXTI Line Interrupts in NVIC. This is set to position 23. 
                               // Then look at corresponding bit position in NVIC_ISERx. Since bit 23 is within the NVIC_ISER0 register
                               // Set bit 23 to 1. 
+    
+    count_init(TIM16); // Initializes counter
+    count_init(TIM15); // Same as delay initialization
 
-    printf()
-}
+    int velocity = direction * speed;
 
-// TODO: What is the right name for the IRQHandler?
-void XXXXXX(void){
-    // Check that the button was what triggered our interrupt
-    if (EXTI->PR1 & (1 << )){
-        // If so, clear the interrupt (NB: Write 1 to reset.)
-        EXTI->PR1 |= (1 << );
-
-        // Then toggle the LED
-        togglePin(LED_PIN);
-
-
-
-    // Put speed calculation here inside the handler
-
+    while (1) {
+        delay_update(TIM15, 100);
+        printf("The motor's velocity is %d" velocity);
     }
 }
 
+// IRQHandler
+void EXTI9_5_IRQHandler(void){
+    // If A_PIN rising edge is interrupted
+    if (EXTI->PR1 & (1 << 5)){
+        // If so, clear the interrupt (NB: Write 1 to reset.)
+        EXTI->PR1 |= (1 << 5);
+        delta_time = 0;
+
+        // Direction calculation
+        direction = B_PIN == 0 ? 1 : -1; // 1 = CW; -1 = CW
+
+        // Update counter for speed calculations
+        //while(!(EXTI->PR1 & (1 << 6))){
+        //    delta_time = count_update(TIM16, delay_time);
+        
+
+        do {
+            if (!(EXTI->PR1 & (1 << 6))){            // If B_PIN's rising edge hasn't been detected
+                done = 0;                            // Keep counting
+            } else {
+                done = 1;                            // Stop recounting and return count
+            }
+            delta_time = count_update(TIM16, done);
+
+        } while (!(EXTI->PR1 & (1 << 6)));
+
+    // if B_PIN rising edge is interrupted
+    } else if (EXTI->PR1 & (1 << 6)) {
+        // If so, clear the interrupt (NB: Write 1 to reset.)
+        EXTI->PR1 |= (1 << 6);
+
+        // Speed calculations
+        speed = 1/(ppr * delta_time);
+
+        // Resets delta_time
+        delta_time = 0;
+    }
+}
+
+// On rising edge of A if B is high then CW, on rising A if B is low than CCW for direction
+
+// 120 PPR 
