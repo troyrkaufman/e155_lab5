@@ -12,6 +12,8 @@
 // Function prototypes
 ///////////////////////////////////////////////////////////////////////////////
 
+void delay_init(TIM_TypeDef * TIMx);
+void delay_update(TIM_TypeDef * TIMx, uint32_t duration);
 void count_init(TIM_TypeDef * TIMx);
-int count_update(TIM_TypeDef * TIMx, uint32_t done);
+int count_update(TIM_TypeDef * TIMx, uint32_t start_count);
 #endif
