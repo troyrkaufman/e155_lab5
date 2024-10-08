@@ -5,19 +5,21 @@
 #include "STM32L432KC_RCC.h"
 #include <stm32l432xx.h>
 
+extern volatile int start_count;
+
 void count_init(TIM_TypeDef * TIMx){
-   TIMx->PSC = 7999;                  // Sets CK_CNT to 10KHz (Sysclock is 80 MHz)
+   TIMx->PSC = 1;                  // Sets CK_CNT to 10KHz (Sysclock is 80 MHz)
    TIMx->CR1 |= (1<<7);               // Auto-reload preload enabled
    TIMx->EGR |= (1<<0);               // Initialize all registers to allow preload registers
    //TIMx->ARR = 65534;                   // Sets ARR to maximum value 
    TIMx->CR1 |= (1<<0);               // Start TIMx counter
 }
 
-int count_update(TIM_TypeDef * TIMx, uint32_t start_count){
-   //TIMx->CNT = 0;                       // Ensures counter starts at zero everytime
-   while(start_count == 1);            // Wait until B_PIN's interrupt triggers
-   return (int) TIMx->CNT;
-}
+int count_update(TIM_TypeDef * TIMx){
+   int count;
+   //while(start_count == 1);            // After A_PIN interrupt triggers, but before B_PIN interrupt triggers
+   return count;             // Return the current count in the CNT register
+   }
 
 void delay_init(TIM_TypeDef * TIMx){
    TIMx->PSC = 7999;                  // Sets CK_CNT to 10KHz (Sysclock is 80 MHz)
