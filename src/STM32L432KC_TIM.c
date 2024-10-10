@@ -8,20 +8,12 @@
 extern volatile int start_count;
 
 void count_init(TIM_TypeDef * TIMx){
-   TIMx->PSC = 799;                  // NOPE -> Sets CK_CNT to 10KHz (Sysclock is 80 MHz)
+   TIMx->PSC = 799;                   // Sets CK_CNT to 100 KHz (Sysclock is 80 MHz) to avoid overflowing counter
    TIMx->CR1 |= (1<<7);               // Auto-reload preload enabled
    TIMx->EGR |= (1<<0);               // Initialize all registers to allow preload registers
-   //TIMx->ARR = 65534;                   // Sets ARR to maximum value 
    TIMx->CR1 |= (1<<0);               // Start TIMx counter
 }
 
-/*
-int count_update(TIM_TypeDef * TIMx){
-   int count;
-   //while(start_count == 1);            // After A_PIN interrupt triggers, but before B_PIN interrupt triggers
-   return count;             // Return the current count in the CNT register
-   }
-*/
 void delay_init(TIM_TypeDef * TIMx){
    TIMx->PSC = 7999;                  // Sets CK_CNT to 10KHz (Sysclock is 80 MHz)
    TIMx->CR1 |= (1<<7);               // Auto-reload preload enabled
