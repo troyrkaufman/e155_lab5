@@ -7,6 +7,7 @@
 #define MAIN_H
 
 #include "stdio.h"
+#include "stdlib.h"
 #include "STM32L432KC.h"
 #include <stm32l432xx.h>
 

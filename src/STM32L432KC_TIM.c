@@ -15,7 +15,7 @@ void count_init(TIM_TypeDef * TIMx){
 }
 
 void delay_init(TIM_TypeDef * TIMx){
-   TIMx->PSC = 7999;                  // Sets CK_CNT to 10KHz (Sysclock is 80 MHz)
+   TIMx->PSC = 799;                  // Sets CK_CNT to 10KHz (Sysclock is 80 MHz)
    TIMx->CR1 |= (1<<7);               // Auto-reload preload enabled
    TIMx->EGR |= (1<<0);               // Initialize all registers to allow preload registers
    TIMx->CR1 |= (1<<0);               // Start TIMx counter
