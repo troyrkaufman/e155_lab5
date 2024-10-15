@@ -5,6 +5,7 @@
 
 #include "main.h"
 #define ppr 120
+#define N 60
 
 // Global variables 
     float direction = 1;
@@ -36,26 +37,26 @@ int main(void) {
     RCC->APB2ENR |= (1 << 0);
 
     // 2. Configure EXTICR for the input button interrupt
-    SYSCFG->EXTICR[1] |= (0b000 << 4);  // PA5  (37)           
+    SYSCFG->EXTICR[2] |= (0b000 << 0);  // PA8             
     SYSCFG->EXTICR[1] |= (0b000 << 8); // PA6   (41) 
 
     // Enable interrupts globally
     __enable_irq();
 
     // 1. Configure mask bit
-    EXTI->IMR1 |= (1<<5); // Sets IM5 interrupt
+    EXTI->IMR1 |= (1<<8); // Sets IM5 interrupt
     EXTI->IMR1 |= (1<<6); // Sets IM6 interrupt 
 
     // 2. Enables rising edge trigger
-    EXTI->RTSR1 |= (1<<5); // RT5
+    EXTI->RTSR1 |= (1<<8); // RT8
     EXTI->RTSR1 |= (1<<6); // RT6
 
     // 3. Enables falling edge trigger
-    EXTI->FTSR1 |= (1<<5); // RT5
+    EXTI->FTSR1 |= (1<<8); // RT8
     EXTI->FTSR1 |= (1<<6); // RT6
 
     // 4. Turn on EXTI interrupt in NVIC_ISER
-    NVIC->ISER[0] |= (1<<EXTI9_5_IRQn); // Using EXTI9_5 for pins PA5 and PA6 EXTI Line Interrupts in NVIC. This is set to position 23. 
+    NVIC->ISER[0] |= (1<<EXTI9_5_IRQn); // Using EXTI9_5 for pins PA8 and PA6 EXTI Line Interrupts in NVIC. This is set to position 23. 
                               // Then look at corresponding bit position in NVIC_ISERx. Since bit 23 is within the NVIC_ISER0 register
                               // Set bit 23 to 
 
@@ -63,21 +64,65 @@ int main(void) {
     delay_init(TIM15); // Initializes delay for print statements
 
     // Counter's input clock
-    // Counter's input clock
     uint32_t clk_freq = SystemCoreClock / (TIM16->PSC - 1);
+    float sum_velo = 0;
+    float avg_velo = 0;
+    int index = 0;
+    float velocity_readings[N] = {0};
+    int initialized = 0;
 
     // Calculations and print statements
     while (1) {
-        if (delta_time != 0) {
-          speed = ((float)clk_freq)/((ppr * (float)delta_time * 4));
-          velocity = direction * speed;
-        } else {
-          velocity = 0;
-        }
-        delay_update(TIM15, 1000);
-        printf("The motor is spinning at %f rev/s \n", velocity);
-       
+    
+       float velocity_readings[N];  // Array to store recent velocity readings
+int index = 0;  // Index to keep track of where to insert the new reading
+float sum = 0;  // Sum of the last N velocity readings
+float avg_velocity = 0;  // Variable to store the average velocity
+int count = 0;  // Counter to track how many readings have been stored
+
+while (1) {
+    if (delta_time != 0) {
+        // Calculate the speed and velocity
+        speed = ((float)clk_freq)/((ppr * (float)delta_time * 2));
+        velocity = direction * speed;
+    } else {
+        velocity = 0;
     }
+
+    // Subtract the oldest reading from the sum (if buffer is full)
+    if (count == N) {
+        sum -= velocity_readings[index];
+    }
+
+    // Store the new velocity reading
+    velocity_readings[index] = velocity;
+
+    // Add the new velocity to the sum
+    sum += velocity;
+
+    // Increment the index and wrap around if necessary
+    index = (index + 1) % N;
+
+    // If the buffer isn't full yet, increase the count
+    if (count < N) {
+        count++;
+    }
+
+    // Only calculate average once we have enough readings (after N samples)
+    if (count == N) {
+        avg_velocity = sum / N;
+    } else {
+        // Use the sum so far for the initial average
+        avg_velocity = sum / count;
+    }
+
+    // Delay for readability and testing
+    delay_update(TIM15, 1000);
+
+    // Print the averaged velocity
+    printf("The motor is spinning at %f rev/s \n", avg_velocity);
+}
+}
 }
 
 void EXTI9_5_IRQHandler(void){
@@ -88,16 +133,25 @@ void EXTI9_5_IRQHandler(void){
           if (cnt_value >= prev_cnt) {
             delta_time = cnt_value - prev_cnt;     // Normal case: No overflow
           } else {
-            delta_time = (0xFFFF - prev_cnt + cnt_value);  // Handle overflow case for 16-bit timer
+            delta_time = (0xffff - prev_cnt + cnt_value);  // Handle overflow case for 16-bit timer
           }
 
             prev_cnt = cnt_value;                    // Keep track of count
 
-          if (digitalRead(A_PIN) == 1) {
-            direction = (digitalRead(B_PIN) == 0) ? 1 : -1;// Rising edge direction calculation; 1 = CW; -1 = CCW
-          } else if (digitalRead(A_PIN) == 0) {
-            direction = (digitalRead(B_PIN) == 1) ? 1 : -1;// Falling edge direction calculation; 1 = CW; -1 = CCW
-          }
+            // Only update direction when there is a change in A_PIN
+        if (digitalRead(A_PIN) == 1) {
+            if (digitalRead(B_PIN) == 0) {
+                direction = 1; // Clockwise
+            } else {
+                direction = -1; // Counter-clockwise
+            }
+        } else {
+            if (digitalRead(B_PIN) == 1) {
+                direction = 1; // Clockwise
+            } else {
+                direction = -1; // Counter-clockwise
+            }
+        }
           
 
     } else if (EXTI->PR1 & (1 << 6)) {              // If B pin interrupt is triggered
@@ -106,16 +160,25 @@ void EXTI9_5_IRQHandler(void){
           if (cnt_value >= prev_cnt) {
             delta_time = cnt_value - prev_cnt;     // Normal case: No overflow
           } else {
-            delta_time = (0xFFFF - prev_cnt + cnt_value);  // Handle overflow case for 16-bit timer
+            delta_time = (0xffff - prev_cnt + cnt_value);  // Handle overflow case for 16-bit timer
           }
 
           prev_cnt = cnt_value;                    // Keep track of count
 
-           if (digitalRead(A_PIN) == 1) {
-            direction = (digitalRead(B_PIN) == 0) ? 1 : -1;// Rising edge direction calculation; 1 = CW; -1 = CCW
-          } else if (digitalRead(A_PIN) == 0) {
-            direction = (digitalRead(B_PIN) == 1) ? 1 : -1;// Falling edge direction calculation; 1 = CW; -1 = CCW
-          }
+          // Only update direction when there is a change in A_PIN
+        if (digitalRead(A_PIN) == 1) {
+            if (digitalRead(B_PIN) == 0) {
+                direction = 1; // Clockwise
+            } else {
+                direction = -1; // Counter-clockwise
+            }
+        } else {
+            if (digitalRead(B_PIN) == 1) {
+                direction = 1; // Clockwise
+            } else {
+                direction = -1; // Counter-clockwise
+            }
+        }
     }
 }
 
