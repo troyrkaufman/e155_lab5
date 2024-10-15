@@ -16,7 +16,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 //#define LED_PIN PA5
-#define A_PIN PA8 // PA8
+#define A_PIN PA5 // PA5
 #define B_PIN PA6 // PA6
 //#define DELAY_TIM TIM16
 
